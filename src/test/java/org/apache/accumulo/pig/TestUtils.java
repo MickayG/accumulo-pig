@@ -41,7 +41,7 @@ public class TestUtils {
         while(expectedIter.hasNext())
         {
         	Entry<String, String> e = expectedIter.next();
-        	assertEquals(actualConf.get(e.getKey()), expectedConf.get(e.getKey()));
+        	assertEquals(e.getKey(), actualConf.get(e.getKey()), expectedConf.get(e.getKey()));
         }
         
         // Basically, for all the keys in actualConf, make sure the values in both confs are equal

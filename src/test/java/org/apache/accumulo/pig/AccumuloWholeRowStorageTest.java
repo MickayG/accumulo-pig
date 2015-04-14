@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -47,19 +48,20 @@ import org.junit.Test;
 public class AccumuloWholeRowStorageTest {
 	
 	@Test
-	public void testConfiguration() throws IOException
-	{
+	public void testConfiguration() throws IOException, AccumuloSecurityException {
 		AbstractAccumuloStorageTest test = new AbstractAccumuloStorageTest();
 		
 		AccumuloWholeRowStorage s = new AccumuloWholeRowStorage();
 		
 		Job actual = new Job();
 		s.setLocation(test.getDefaultLoadLocation(), actual);
+		s.configureInputFormat(actual);
+
 		Configuration actualConf = actual.getConfiguration();
-		
+
 		Job expected =  test.getDefaultExpectedLoadJob();
 		Configuration expectedConf = expected.getConfiguration();
-		AccumuloInputFormat.addIterator(expectedConf, new IteratorSetting(10, WholeRowIterator.class));
+		AccumuloInputFormat.addIterator(expected, new IteratorSetting(10, WholeRowIterator.class));
 		
 		TestUtils.assertConfigurationsEqual(expectedConf, actualConf);
 	}

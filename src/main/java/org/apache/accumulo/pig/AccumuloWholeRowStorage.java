@@ -35,6 +35,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultDataBag;
@@ -93,9 +94,9 @@ public class AccumuloWholeRowStorage extends AbstractAccumuloStorage
         return tuple;
     }
 	
-    protected void configureInputFormat(Configuration conf)
+    protected void configureInputFormat(Job job)
     {
-    	AccumuloInputFormat.addIterator(conf, new IteratorSetting(10, WholeRowIterator.class));
+    	AccumuloInputFormat.addIterator(job, new IteratorSetting(10, WholeRowIterator.class));
     }
     
     @Override

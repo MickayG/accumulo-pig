@@ -18,11 +18,16 @@ package org.apache.accumulo.pig;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -33,27 +38,31 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.data.Tuple;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class AbstractAccumuloStorageTest {
 	
 	public Job getExpectedLoadJob(String inst, String zookeepers,  String user, String password,String table, 
-			String start,String end,Authorizations authorizations, List<Pair<Text, Text>> columnFamilyColumnQualifierPairs) throws IOException
-	{
+			String start,String end,Authorizations authorizations, List<Pair<Text, Text>> columnFamilyColumnQualifierPairs) throws IOException, AccumuloSecurityException {
 	    Collection<Range> ranges = new LinkedList<Range>();
 	    ranges.add(new Range(start, end));
 	    
 		Job expected = new Job();
 		Configuration expectedConf = expected.getConfiguration();
-		AccumuloInputFormat.setInputInfo(expectedConf, user, password.getBytes(), table, authorizations);
-        AccumuloInputFormat.setZooKeeperInstance(expectedConf, inst, zookeepers);
-        AccumuloInputFormat.fetchColumns(expectedConf, columnFamilyColumnQualifierPairs);
-        AccumuloInputFormat.setRanges(expectedConf, ranges);
+
+		AccumuloInputFormat.setConnectorInfo(expected, user, new PasswordToken(password.getBytes()));
+
+		AccumuloInputFormat.setInputTableName(expected, table);
+		AccumuloInputFormat.setScanAuthorizations(expected, authorizations);
+
+		AccumuloInputFormat.setZooKeeperInstance(expected, inst, zookeepers);
+        AccumuloInputFormat.fetchColumns(expected, columnFamilyColumnQualifierPairs);
+		AccumuloInputFormat.setRanges(expected, Collections.singleton(new Range(start, end)));
         return expected;
 	}
 	
-	public Job getDefaultExpectedLoadJob() throws IOException
-	{
+	public Job getDefaultExpectedLoadJob() throws IOException, AccumuloSecurityException {
 		String inst = "myinstance";
 	    String zookeepers = "127.0.0.1:2181";
 	    String user = "root";
@@ -74,13 +83,24 @@ public class AbstractAccumuloStorageTest {
 	
 	public Job getExpectedStoreJob(String inst, String zookeepers, String user, String password,String table, long maxWriteBufferSize, int writeThreads, int maxWriteLatencyMS) throws IOException
 	{
-		Job expected = new Job();
-		Configuration expectedConf = expected.getConfiguration();
-		AccumuloOutputFormat.setOutputInfo(expectedConf, user, password.getBytes(), true, table);
-        AccumuloOutputFormat.setZooKeeperInstance(expectedConf, inst, zookeepers);
-        AccumuloOutputFormat.setMaxLatency(expectedConf, maxWriteLatencyMS);
-        AccumuloOutputFormat.setMaxMutationBufferSize(expectedConf, maxWriteBufferSize);
-        AccumuloOutputFormat.setMaxWriteThreads(expectedConf, writeThreads);
+		Job expected = new Job(new Configuration());
+
+		try {
+			AccumuloOutputFormat.setConnectorInfo(expected, user,
+					new PasswordToken(password));
+		} catch (AccumuloSecurityException e) {
+			Assert.fail(e.getMessage());
+		}
+
+		BatchWriterConfig bwConfig = new BatchWriterConfig();
+		bwConfig.setMaxLatency(maxWriteLatencyMS, TimeUnit.MILLISECONDS);
+		bwConfig.setMaxMemory(maxWriteBufferSize);
+		bwConfig.setMaxWriteThreads(writeThreads);
+		AccumuloOutputFormat.setBatchWriterOptions(expected, bwConfig);
+
+		AccumuloOutputFormat.setZooKeeperInstance(expected, inst, zookeepers);
+		AccumuloOutputFormat.setDefaultTableName(expected, table);
+		AccumuloOutputFormat.setCreateTables(expected, true);
         
         return expected;
 	}
@@ -125,8 +145,7 @@ public class AbstractAccumuloStorageTest {
 	
 	
 	@Test
-	public void testSetLoadLocation() throws IOException
-	{
+	public void testSetLoadLocation() throws IOException, AccumuloSecurityException {
 		AbstractAccumuloStorage s = getAbstractAccumuloStorage();
 		
 		Job actual = new Job();
