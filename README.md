@@ -10,14 +10,14 @@ To compile the project run:
 
     mvn package
 
-You will then need to download the JAR files which will be needed by pig
+You will then need to download the JAR files which will be needed by pig:
 
     mvn dependency:copy-dependencies -DoutputDirectory=lib  -DincludeArtifactIds=zookeeper,libthrift,accumulo-core,accumulo-fate,accumulo-trace
 
 This will add the JAR files to the 'lib' directory in the project folder. Transfer these JAR files along with the compiled JAR file 'accumulo-pig-1.6.0.jar' found in the target/ directory to the target machine. These should be local on each node.
 I transfer them into the /lib/ directory on the node.
 
-To write a pig script that uses Accumulo, register the JAR files with pig, run the commands:
+To write a pig script that uses Accumulo you should register the JAR files with pig. To do this run the commands:
 
     register /lib/accumulo-core-1.6.0.jar;
     register /lib/accumulo-fate-1.6.0.jar;
@@ -26,7 +26,7 @@ To write a pig script that uses Accumulo, register the JAR files with pig, run t
     register /lib/libthrift-0.9.0.jar;
     register /lib/zookeeper-3.3.6.jar;
 
-Save the register commands to a file such as "register-accumulo-jars.pig", it is possible to run "exec register-accumulo-jars.pig" in pig's grunt interface. Alternatively place them at the top of any Pig script you create.
+Save the register commands to a file such as "register-accumulo-jars.pig", it is then possible to run "exec register-accumulo-jars.pig" in pig's grunt interface. Alternatively place them at the top of any Pig script you create.
 
 ## Usage
 
